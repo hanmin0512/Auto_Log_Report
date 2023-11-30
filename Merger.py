@@ -23,7 +23,7 @@ class Criminal:
 
         self.payload={}
         self.headers = {
-            "x-api-key": "bJnrTiUa9EzhOQWVHZXAP5bvCfkHa7CcRDISfQbAm5J54mvi44GMkXcjtkYH"
+            "x-api-key": "<API KEY>"
         }
     def get_criminal_info(self):
         response = requests.request("GET", self.url, headers=self.headers, data=self.payload)
