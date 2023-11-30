@@ -4,6 +4,7 @@ import pandas as pd
 import Merger
 import logging
 from flask_cors import CORS
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -31,6 +32,19 @@ def process():
     File.extension()
     
     return render_template('index.html')
+
+@app.route('/indata', methods=["POST","GET"])
+def insert_data():
+    query = request.form.get('input_data')
+    if query is None:
+        return render_template('sql_injection.html')
+    QR = Merger.DBConnect().inData(query, datetime.now().strftime('%Y-%m-%d'))
+    print(query)
+    return render_template('index.html')
+
+@app.route('/index3')
+def index3():
+    return render_template('index3.html')
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000,debug=True)

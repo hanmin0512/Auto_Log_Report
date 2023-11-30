@@ -13,6 +13,8 @@ from docx import Document
 from docx2pdf import convert
 from openpyxl import Workbook
 import json
+from pymongo import MongoClient
+import pythoncom
 
 class Criminal:
     def __init__(self, ip_address):
@@ -59,19 +61,21 @@ class File:
         self.df = None
         self.temp_file_path = None
         self.today = datetime.now().strftime('%Y-%m-%d')
-
+        self.timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M')
+        self.copy_file = None
+        
     def extension(self):
         if self.filename.endswith(".txt"):
-            self.temp_file_path = os.path.join('uploads',f'{self.filename}_copy.csv')
+            self.temp_file_path = os.path.join('uploads',f'{self.timestamp}_{self.filename}_copy.csv')
             self.read_text()
         elif self.filename.endswith(".xlsx"):
-            self.temp_file_path = os.path.join('uploads',f'{self.filename}_copy.xlsx')
+            self.temp_file_path = os.path.join('uploads',f'{self.timestamp}_{self.filename}_copy.xlsx')
             self.read_excel()
         elif self.filename.endswith(".docx"):
-            self.temp_file_path = os.path.join('uploads',f'{self.filename}_copy.docx')
+            self.temp_file_path = os.path.join('uploads',f'{self.timestamp}_{self.filename}_copy.docx')
             self.read_docx()
         elif self.filename.endswith(".log"):
-            self.temp_file_path = os.path.join('uploads',f'{self.filename}_copy.log')
+            self.temp_file_path = os.path.join('uploads',f'{self.timestamp}_{self.filename}_copy.log')
             self.read_log()
     
     def read_text(self):
@@ -118,6 +122,7 @@ class File:
         return self.df
 
     def read_log(self):
+        print(self.temp_file_path)
         self.file.save(self.temp_file_path)
 
         ip_list = []
@@ -131,8 +136,8 @@ class File:
         info = Criminal(ip_list[0]).get_criminal_info()
         ip_counter = Counter(ip_list)
         top_10_ips = ip_counter.most_common(10)
-
-        with open(os.path.join('uploads',f'{self.filename}_copy.txt'), 'w', encoding='utf-8') as f:
+        self.copy_file = f'{self.timestamp}_{self.filename}_copy.txt'
+        with open(os.path.join('uploads',self.copy_file), 'w', encoding='utf-8') as f:
             for ip_address, count in top_10_ips:
                 line = f"{ip_address} 접속 횟수 {count}\n"
                 f.write(line)
@@ -140,8 +145,9 @@ class File:
     
     def create_report(self,info):
         doc = Document(os.path.join('uploads','template.docx'))
-        file_path = os.path.join('uploads', 'access.log_copy.txt')
-        
+        file_path = os.path.join('uploads', self.copy_file)
+        DB = DBConnect()
+        DB.inData(self.filename, datetime.now())
         # 텍스트 파일을 읽어 리스트로 변환
         with open(file_path, 'r', encoding='utf-8') as file:
             all_lines = file.readlines()
@@ -161,9 +167,12 @@ class File:
             elif 'INFO' in paragraph.text:
                paragraph.text = paragraph.text.replace('INFO', f'{info}')
 
-        doc_file = f'{self.today}_{self.filename}_report.docx'
-        pdf_file = f'{self.today}_{self.filename}_report.pdf'
+        doc_file = f'{self.timestamp}_{self.filename}_report.docx'
+        pdf_file = f'{self.timestamp}_{self.filename}_report.pdf'
         doc.save(doc_file)
+        
+
+        pythoncom.CoInitialize()
         convert(doc_file, pdf_file)
 
 class AutoExcel:
@@ -175,6 +184,7 @@ class AutoExcel:
             'User-Agent': 'Mozilla/5.0',
             'Content-Type': 'text/html; charset=utf-8'
         }
+        self.timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M')
 
     def criminal_info_excel(self, result):
         self.workbook = Workbook()
@@ -187,7 +197,7 @@ class AutoExcel:
 
             self.worksheet.cell(row=row_index, column=2, value=value)
 
-        file_path = os.path.join('uploads', f'{self.today}_ip_info.xlsx')
+        file_path = os.path.join('uploads', f'{self.timestamp}_ip_info.xlsx')
         self.workbook.save(file_path)
 
     def criminal_info_excel1(self, result):
@@ -349,6 +359,19 @@ class Monitering:
             self.previous_files = current_files
 
 
+class DBConnect:
+    def __init__(self):
+        self.client = MongoClient('mongodb://localhost:27017')
+        self.db = self.client['user']
+        self.collection = self.db['userinfo']
+
+    def inData(self,filename, date):
+        #date = date_obj = datetime.strptime(date, '%Y-%m-%d').date()
+        data = {
+            'file' : filename,
+            'timestamp' : date
+        }
+        self.collection.insert_one(data)
 
 
 if __name__ == "__main__":
@@ -363,10 +386,10 @@ if __name__ == "__main__":
 
 
 
-    '''
-    received_email = ""
+
+    received_email = "hanmin9981@naver.com"
     path = 'uploads'
     MT = Monitering(path,received_email)
     MT.inspect_annotation("#")
-'''
+
 
