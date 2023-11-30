@@ -16,7 +16,7 @@ import json
 
 class Criminal:
     def __init__(self, ip_address):
-        print(ip_address)
+        
         self.url = f"https://api.criminalip.io/v1/asset/ip/summary?ip={ip_address}"
 
         self.payload={}
@@ -28,9 +28,13 @@ class Criminal:
         if response.status_code == 200:
             AE = AutoExcel()
             print(response.json())
-            AE.criminal_info_excel(response.json())
+            AE.criminal_info_excel1(response.json())
+            return response.json()
         else:
             print("접속 오류 발생")
+    def create_report(self):
+        res = self.get_criminal_info()
+        pass
 
     def printing(result):
         print("IP 정보:")
@@ -53,7 +57,8 @@ class File:
         self.file = file
         self.filename = filename
         self.df = None
-        self.temp_file_path = None 
+        self.temp_file_path = None
+        self.today = datetime.now().strftime('%Y-%m-%d')
 
     def extension(self):
         if self.filename.endswith(".txt"):
@@ -99,9 +104,11 @@ class File:
         for paragraph in self.df.paragraphs:
             if 'NAME' in paragraph.text:
                 paragraph.text = paragraph.text.replace('NAME', '조정원')
-            elif 'EMAIL' in paragraph.text:
-                paragraph.text = paragraph.text.replace('EMAIL', 'a@a.com')
-            elif 'COUNT' in paragraph.text:
+            elif 'FILE' in paragraph.text:
+                paragraph.text = paragraph.text.replace('FILE', f'{self.filename}')
+            elif 'DATE' in paragraph.text:
+                paragraph.text = paragraph.text.replace('DATE', '200')
+            elif 'INFO' in paragraph.text:
                 paragraph.text = paragraph.text.replace('COUNT', '200')
 
         doc_file = f'{self.temp_file_path}01.docx'
@@ -120,8 +127,8 @@ class File:
                 if match:
                     ip_list.append(match[0])
                     #print(match[0])
-        #print(ip_list[0]) # for문으로 10개 IP CRIMINAL로 데이터화 하기.
-        Criminal(ip_list[0]).get_criminal_info()
+        print("log : ", ip_list[0]) # for문으로 10개 IP CRIMINAL로 데이터화 하기.
+        info = Criminal(ip_list[0]).get_criminal_info()
         ip_counter = Counter(ip_list)
         top_10_ips = ip_counter.most_common(10)
 
@@ -129,7 +136,35 @@ class File:
             for ip_address, count in top_10_ips:
                 line = f"{ip_address} 접속 횟수 {count}\n"
                 f.write(line)
+        self.create_report(info)
+    
+    def create_report(self,info):
+        doc = Document(os.path.join('uploads','template.docx'))
+        file_path = os.path.join('uploads', 'access.log_copy.txt')
+        
+        # 텍스트 파일을 읽어 리스트로 변환
+        with open(file_path, 'r', encoding='utf-8') as file:
+            all_lines = file.readlines()
 
+        # 각 행의 끝에 있는 개행 문자('\n') 제거
+        all_lines = [line.strip() for line in all_lines]
+        print("list : ",all_lines)
+        for paragraph in doc.paragraphs:
+            if 'NAME' in paragraph.text:
+                paragraph.text = paragraph.text.replace('NAME', '조정원')
+            elif 'DATE' in paragraph.text:
+                paragraph.text = paragraph.text.replace('DATE', f'{self.today}')
+            elif 'CONTENT' in paragraph.text:
+               paragraph.text = paragraph.text.replace('CONTENT', f'{all_lines}')
+            elif 'FILE' in paragraph.text:
+               paragraph.text = paragraph.text.replace('FILE', f'{self.filename}')
+            elif 'INFO' in paragraph.text:
+               paragraph.text = paragraph.text.replace('INFO', f'{info}')
+
+        doc_file = f'{self.today}_{self.filename}_report.docx'
+        pdf_file = f'{self.today}_{self.filename}_report.pdf'
+        doc.save(doc_file)
+        convert(doc_file, pdf_file)
 
 class AutoExcel:
     def __init__(self):
@@ -155,8 +190,24 @@ class AutoExcel:
         file_path = os.path.join('uploads', f'{self.today}_ip_info.xlsx')
         self.workbook.save(file_path)
 
+    def criminal_info_excel1(self, result):
+        try:
+            self.workbook = Workbook()
+            self.worksheet = self.workbook.active
 
+            for row_index, (key, value) in enumerate(result.items(), start=1):
+                self.worksheet.cell(row=row_index, column=1, value=key)
+                if key == 'score' and isinstance(value, dict):
+                    value = json.dumps(value)
+                if isinstance(value, dict) and not value:
+                    value = None  # 빈 딕셔너리는 None으로 대체
+                self.worksheet.cell(row=row_index, column=2, value=value)
 
+            file_path = os.path.join('uploads', f'{self.today}_ip_info.xlsx')
+            self.workbook.save(file_path)
+            print(f"Excel file saved successfully.")
+        except Exception as e:
+            print(f"Error saving Excel file: {e}")
 
 
 
@@ -301,7 +352,7 @@ class Monitering:
 
 
 if __name__ == "__main__":
-    #received_email = "hanmin9981@naver.com"
+    #received_email = ""
     #path = 'uploads'
     #mail = Mail(received_email)
     #mail.mail_attach_sender(path, "trans.xlsx")
@@ -313,9 +364,9 @@ if __name__ == "__main__":
 
 
     '''
-    received_email = "hanmin9981@naver.com"
+    received_email = ""
     path = 'uploads'
     MT = Monitering(path,received_email)
     MT.inspect_annotation("#")
-    '''
+'''
 
