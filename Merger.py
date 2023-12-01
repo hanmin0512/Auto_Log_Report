@@ -416,7 +416,7 @@ if __name__ == "__main__":
 
 
 
-    received_email = "hanmin9981@naver.com"
+    received_email = "<본인 네이버 이메일 기입>@naver.com"
     path = 'uploads'
     MT = Monitering(path,received_email)
     MT.inspect_annotation("#")
