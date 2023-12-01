@@ -1,4 +1,4 @@
-# 프로젝트 명 : ip_detector 
+# 프로젝트 명 : Ip_detector 
 
 # 주제
 - 파일 검수 웹 서비스
