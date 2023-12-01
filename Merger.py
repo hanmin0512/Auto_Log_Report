@@ -23,7 +23,7 @@ class Criminal:
 
         self.payload={}
         self.headers = {
-            "x-api-key": "<API KEY>"
+            "x-api-key": "bJnrTiUa9EzhOQWVHZXAP5bvCfkHa7CcRDISfQbAm5J54mvi44GMkXcjtkYH"
         }
     def get_criminal_info(self):
         response = requests.request("GET", self.url, headers=self.headers, data=self.payload)
@@ -34,9 +34,7 @@ class Criminal:
             return response.json()
         else:
             print("접속 오류 발생")
-    def create_report(self):
-        res = self.get_criminal_info()
-        pass
+
 
     def printing(result):
         print("IP 정보:")
@@ -63,6 +61,7 @@ class File:
         self.today = datetime.now().strftime('%Y-%m-%d')
         self.timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M')
         self.copy_file = None
+        self.content = ""
         
     def extension(self):
         if self.filename.endswith(".txt"):
@@ -124,23 +123,49 @@ class File:
     def read_log(self):
         print(self.temp_file_path)
         self.file.save(self.temp_file_path)
-
+        result_list = []
         ip_list = []
+        timestamp_list = []
         with open(self.temp_file_path, 'r') as f:
             for line in f:
                 match = re.findall(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", line)
                 if match:
                     ip_list.append(match[0])
-                    #print(match[0])
+                    timestamp_match = re.findall(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", line)
+                if timestamp_match:
+                    timestamp_list.append(timestamp_match[0])
         print("log : ", ip_list[0]) # for문으로 10개 IP CRIMINAL로 데이터화 하기.
         info = Criminal(ip_list[0]).get_criminal_info()
         ip_counter = Counter(ip_list)
         top_10_ips = ip_counter.most_common(10)
         self.copy_file = f'{self.timestamp}_{self.filename}_copy.txt'
+
+
         with open(os.path.join('uploads',self.copy_file), 'w', encoding='utf-8') as f:
             for ip_address, count in top_10_ips:
-                line = f"{ip_address} 접속 횟수 {count}\n"
-                f.write(line)
+                log_timestamps = []
+                for ip, timestamp in zip(ip_list, timestamp_list):
+                    if ip == ip_address:
+                        log_timestamps.append(timestamp)
+                if log_timestamps:
+                    latest_timestamp = max(log_timestamps)
+                else:
+                    latest_timestamp = ''
+                time_counter = Counter()
+                for timestamp in log_timestamps:
+                    time_counter[timestamp] += 1
+                time_counts = time_counter.most_common()
+
+                result_list.append(f"IP 주소: {ip_address}\n")
+                for timestamp, time_count in sorted(time_counts):
+                    result_list.append(f"시간: {timestamp}, 접속 횟수: {time_count}\n")
+                result_list.append(f"총 접속 횟수: {count}, 최근 접속 시간: {latest_timestamp}\n")
+                result_list.append("\n")
+                f.writelines(result_list)
+
+                #line = f"{ip_address} 접속 횟수 {count}, 가장 최근 접속 시간: {str(latest_timestamp)}\n"
+                
+                #f.write(line)
         self.create_report(info)
     
     def create_report(self,info):
@@ -148,6 +173,7 @@ class File:
         file_path = os.path.join('uploads', self.copy_file)
         DB = DBConnect()
         DB.inData(self.filename, datetime.now())
+        print("DB 삽입 성공")
         # 텍스트 파일을 읽어 리스트로 변환
         with open(file_path, 'r', encoding='utf-8') as file:
             all_lines = file.readlines()
@@ -157,15 +183,17 @@ class File:
         print("list : ",all_lines)
         for paragraph in doc.paragraphs:
             if 'NAME' in paragraph.text:
-                paragraph.text = paragraph.text.replace('NAME', '조정원')
+                paragraph.text = paragraph.text.replace('NAME', '4조')
             elif 'DATE' in paragraph.text:
                 paragraph.text = paragraph.text.replace('DATE', f'{self.today}')
             elif 'CONTENT' in paragraph.text:
-               paragraph.text = paragraph.text.replace('CONTENT', f'{all_lines}')
+               for con in all_lines:
+                   self.content+="\t"+con+"\n"
+               paragraph.text = paragraph.text.replace('CONTENT', f'{self.content}')
             elif 'FILE' in paragraph.text:
                paragraph.text = paragraph.text.replace('FILE', f'{self.filename}')
             elif 'INFO' in paragraph.text:
-               paragraph.text = paragraph.text.replace('INFO', f'{info}')
+                paragraph.text = paragraph.text.replace('INFO', f'{info}')
 
         doc_file = f'{self.timestamp}_{self.filename}_report.docx'
         pdf_file = f'{self.timestamp}_{self.filename}_report.pdf'
@@ -346,16 +374,17 @@ class Monitering:
             current_files= set(os.listdir(self.DIR_WATCH))
             new_files = current_files - self.previous_files
             for filename in new_files:
-                file_path = os.path.join(self.DIR_WATCH, filename)
-                with open(file_path,'r', encoding='utf-8') as f:
-                    lines = f.readlines()
-                    for line in lines:
-                        if line.startswith(f"{word}") or line.startswith("//") or line.startswith("#"):
-                            self.inspect_list.append(f"{line}")
-            
-                if self.inspect_list:
-                    print(f"{self.inspect_list}")
-                    self.mail.mail_text_sender(self.DIR_WATCH,self.inspect_list)
+                if filename.endswith(".txt") or filename.endswith(".csv"):
+                    file_path = os.path.join(self.DIR_WATCH, filename)
+                    with open(file_path,'r', encoding='utf-8') as f:
+                        lines = f.readlines()
+                        for line in lines:
+                            if line.startswith(f"{word}") or line.startswith("//") or line.startswith("#"):
+                                self.inspect_list.append(f"{line}")
+                
+                    if self.inspect_list:
+                        print(f"{self.inspect_list}")
+                        self.mail.mail_text_sender(self.DIR_WATCH,self.inspect_list)
             self.previous_files = current_files
 
 

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_file
 import feedparser, os
 import pandas as pd
 import Merger
@@ -15,12 +15,14 @@ app.logger.setLevel(logging.DEBUG)
 file_handler = logging.FileHandler('access.log')
 file_handler.setLevel(logging.DEBUG)
 app.logger.addHandler(file_handler)
+timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
 
 @app.route('/')
 def index():
     client_ip = request.remote_addr
-    app.logger.debug(f'IP : {client_ip}')
-    return render_template("index.html")
+    
+    app.logger.debug(f'IP : {client_ip} TimeStamp: {timestamp}')
+    return render_template("index3.html")
 
 
 @app.route('/process', methods=['POST','GET'])
@@ -33,6 +35,7 @@ def process():
     
     return render_template('index.html')
 
+
 @app.route('/indata', methods=["POST","GET"])
 def insert_data():
     query = request.form.get('input_data')
@@ -42,7 +45,7 @@ def insert_data():
     print(query)
     return render_template('index.html')
 
-@app.route('/index3')
+@app.route('/index3', methods=["POST","GET"])
 def index3():
     return render_template('index3.html')
 
