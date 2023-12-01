@@ -6,6 +6,7 @@ import logging
 from flask_cors import CORS
 from datetime import datetime
 
+file_name = ""
 app = Flask(__name__)
 CORS(app)
 # 로깅 레벨을 DEBUG로 설정
@@ -27,13 +28,19 @@ def index():
 
 @app.route('/process', methods=['POST','GET'])
 def process():
+    global file_name,timestamp
     file = request.files['file']
     if file is None:
-        return render_template("index.html")
+        return render_template("index3.html")
+    
+    file_name = file.filename
     File = Merger.File(file,file.filename)
     File.extension()
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    if file.filename.endswith(".log"):
+        return render_template('download.html')
     
-    return render_template('index.html')
+    return render_template('index3.html')
 
 
 @app.route('/indata', methods=["POST","GET"])
@@ -48,6 +55,11 @@ def insert_data():
 @app.route('/index3', methods=["POST","GET"])
 def index3():
     return render_template('index3.html')
+
+@app.route('/download', methods=["GET", "POST"])
+def download():
+    print(os.path.join(f'{timestamp}_{file_name}_report.pdf'))
+    return send_file(os.path.join(f'{timestamp}_{file_name}_report.pdf'),as_attachment=True)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000,debug=True)
