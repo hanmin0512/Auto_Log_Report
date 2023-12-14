@@ -43,3 +43,25 @@ if __name__ == "__main__":
 SECRET_ID = "이메일 아이디"
 SECRET_PASS = "이메일 비밀번호"
 ```
+
+
+## 로그 기록 보고서 자동화 기능 시행
+- 보고서 template 제작
+> ![templates](https://github.com/hanmin0512/share_app/assets/37041208/35c90e67-d722-4643-819f-0e9bce34a4c5)
+
+
+- 메인페이지
+> ![page](https://github.com/hanmin0512/share_app/assets/37041208/c989862b-3483-4877-ae7e-853bd4e38bb2)
+
+-  로그파일 웹 페이지에 업로드
+> ![upload_log](https://github.com/hanmin0512/share_app/assets/37041208/878728dc-1e0a-4c70-a7f6-d869c7134813)
+
+- 업로드 후 자동으로 만들어진 보고서 다운로드
+> ![report_download_page](https://github.com/hanmin0512/share_app/assets/37041208/3e98a333-3d72-45e0-9712-a6d22ed01ba9)
+> ![report](https://github.com/hanmin0512/share_app/assets/37041208/392ffc8b-700b-4c57-8a51-b02c9275e177)
+
+- 다운로드 된 보고서 pdf 파일 확인
+> ![report_pdf](https://github.com/hanmin0512/share_app/assets/37041208/ce221d58-2e86-4d69-a681-27b654659cba)
+
+
+
